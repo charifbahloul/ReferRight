@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import MicButton from "../MicButton";
 import { Field, Pill } from "../ui";
 import { DEMO_CASES } from "@/lib/data/demoCases.js";
@@ -9,9 +9,12 @@ import { PLACES } from "@/lib/data/geo.js";
 const ACCESS_OPTIONS = [
   ["wheelchair_access", "Wheelchair access"],
   ["near_transit", "Near transit"],
-  ["parking", "Parking"],
   ["virtual_option", "Virtual visit OK"],
+  ["accessible_washroom", "Accessible washroom"],
+  ["asl_interpreter", "ASL / interpreter"],
 ];
+
+const LANG_CHOICES = ["English", "French", "No preference", "Other"];
 
 export default function IntakeScreen({ intake, setIntake, onParse }) {
   const [interim, setInterim] = useState("");
@@ -25,18 +28,25 @@ export default function IntakeScreen({ intake, setIntake, onParse }) {
         : [...intake.accessibility_needs, key],
     });
 
+  const onLangChoice = (val) => {
+    if (val === "Other") update({ language_choice: "Other", language_preference: "" });
+    else update({ language_choice: val, language_preference: val });
+  };
+
   const loadDemo = (demo) => {
     setInterim("");
+    const known = LANG_CHOICES.includes(demo.language_preference);
     setIntake({
       referral_reason: demo.referral_reason,
       postal_code: demo.postal_code,
-      max_travel_km: demo.max_travel_km,
+      language_choice: known ? demo.language_preference : "Other",
       language_preference: demo.language_preference,
       accessibility_needs: [...demo.accessibility_needs],
-      urgency_hint: demo.urgency_hint,
       emr: demo.emr_extract,
       emrAttached: true,
+      emrName: "emr_extract.json (demo)",
       transcriptAttached: true,
+      transcriptName: "scribe_transcript.txt (demo)",
       demoId: demo.id,
     });
   };
@@ -80,6 +90,7 @@ export default function IntakeScreen({ intake, setIntake, onParse }) {
           </div>
         </Field>
 
+        {/* One row of fields under the referral reason. */}
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field label="Patient location (FSA / postal)">
             <input
@@ -96,45 +107,28 @@ export default function IntakeScreen({ intake, setIntake, onParse }) {
             </datalist>
           </Field>
 
-          <Field label={`Max travel distance — ${intake.max_travel_km} km`}>
-            <input
-              type="range"
-              min="2"
-              max="40"
-              step="1"
-              value={intake.max_travel_km}
-              onChange={(e) => update({ max_travel_km: Number(e.target.value) })}
-              className="w-full accent-compass-600"
-            />
-          </Field>
-
           <Field label="Language preference">
             <select
               className="input"
-              value={intake.language_preference}
-              onChange={(e) => update({ language_preference: e.target.value })}
+              value={intake.language_choice}
+              onChange={(e) => onLangChoice(e.target.value)}
             >
-              <option>English</option>
-              <option>French</option>
-              <option>No preference</option>
+              {LANG_CHOICES.map((l) => (
+                <option key={l} value={l}>{l}</option>
+              ))}
             </select>
-          </Field>
-
-          <Field label="Urgency hint (optional)">
-            <select
-              className="input"
-              value={intake.urgency_hint}
-              onChange={(e) => update({ urgency_hint: e.target.value })}
-            >
-              <option value="">Let AI estimate</option>
-              <option value="routine">Routine</option>
-              <option value="semi_urgent">Semi-urgent</option>
-              <option value="urgent">Urgent</option>
-            </select>
+            {intake.language_choice === "Other" && (
+              <input
+                className="input mt-2"
+                placeholder="Type the language (e.g. Arabic, Punjabi, Mandarin)"
+                value={intake.language_preference}
+                onChange={(e) => update({ language_preference: e.target.value })}
+              />
+            )}
           </Field>
         </div>
 
-        <Field label="Accessibility / language needs" >
+        <Field label="Accessibility">
           <div className="flex flex-wrap gap-2">
             {ACCESS_OPTIONS.map(([key, label]) => {
               const on = intake.accessibility_needs.includes(key);
@@ -157,26 +151,36 @@ export default function IntakeScreen({ intake, setIntake, onParse }) {
           </div>
         </Field>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3">
-          <UploadToggle
-            on={intake.transcriptAttached}
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <FileDrop
             label="Scribe transcript"
-            onClick={() => update({ transcriptAttached: !intake.transcriptAttached })}
+            attached={intake.transcriptAttached}
+            name={intake.transcriptName}
+            onFile={(name) => update({ transcriptAttached: true, transcriptName: name })}
+            onSimulate={() =>
+              update({
+                transcriptAttached: !intake.transcriptAttached,
+                transcriptName: !intake.transcriptAttached ? "scribe_transcript.txt (simulated)" : "",
+              })
+            }
+            onClear={() => update({ transcriptAttached: false, transcriptName: "" })}
           />
-          <UploadToggle
-            on={intake.emrAttached}
+          <FileDrop
             label="EMR extract"
-            onClick={() => update({ emrAttached: !intake.emrAttached })}
+            attached={intake.emrAttached}
+            name={intake.emrName}
+            onFile={(name) => update({ emrAttached: true, emrName: name })}
+            onSimulate={() =>
+              update({
+                emrAttached: !intake.emrAttached,
+                emrName: !intake.emrAttached ? "emr_extract.json (simulated)" : "",
+              })
+            }
+            onClear={() => update({ emrAttached: false, emrName: "" })}
           />
-          <span className="text-xs text-slate-400">
-            Optional · synthetic sources, used only to auto-fill the form
-          </span>
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-xs text-slate-400">
-            🔒 Synthetic data only. Nothing is stored.
-          </p>
+        <div className="mt-6 flex items-center justify-end">
           <button className="btn-primary" disabled={!canParse} onClick={onParse}>
             Analyze referral →
           </button>
@@ -187,7 +191,7 @@ export default function IntakeScreen({ intake, setIntake, onParse }) {
       <div className="card h-fit p-6">
         <h3 className="text-sm font-bold text-slate-900">Load a demo case</h3>
         <p className="mt-1 text-xs text-slate-500">
-          Pre-fills dictation, patient context and a synthetic EMR extract.
+          Pre-fills dictation, patient context and an EMR extract.
         </p>
         <div className="mt-4 space-y-3">
           {DEMO_CASES.map((d) => (
@@ -208,16 +212,72 @@ export default function IntakeScreen({ intake, setIntake, onParse }) {
   );
 }
 
-function UploadToggle({ on, label, onClick }) {
+// Real drag-and-drop dropzone with a "simulate attach" fallback.
+function FileDrop({ label, attached, name, onFile, onSimulate, onClear }) {
+  const inputRef = useRef(null);
+  const [over, setOver] = useState(false);
+
+  const handleFiles = (files) => {
+    if (files && files[0]) onFile(files[0].name);
+  };
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`pill border ${
-        on ? "border-teal-300 bg-teal-50 text-teal-700" : "border-slate-200 bg-white text-slate-500"
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setOver(false);
+        handleFiles(e.dataTransfer.files);
+      }}
+      onClick={() => inputRef.current?.click()}
+      className={`cursor-pointer rounded-xl border border-dashed p-3 text-center transition ${
+        over
+          ? "border-compass-400 bg-compass-50"
+          : attached
+          ? "border-teal-300 bg-teal-50/50"
+          : "border-slate-300 bg-slate-50 hover:border-compass-300"
       }`}
     >
-      📎 {label}: {on ? "attached" : "off"}
-    </button>
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => handleFiles(e.target.files)}
+      />
+      <div className="text-sm font-semibold text-slate-700">📎 {label}</div>
+      {attached ? (
+        <div className="mt-1 text-xs text-teal-700">
+          ✓ {name || "attached"}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClear();
+            }}
+            className="ml-2 text-slate-400 underline hover:text-slate-600"
+          >
+            remove
+          </button>
+        </div>
+      ) : (
+        <div className="mt-1 text-xs text-slate-400">
+          Drag &amp; drop a file, or click to browse
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSimulate();
+            }}
+            className="ml-2 font-semibold text-compass-600 underline hover:text-compass-700"
+          >
+            simulate
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

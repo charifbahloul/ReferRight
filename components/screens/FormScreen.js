@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Pill } from "../ui";
+import { useEffect, useMemo, useState } from "react";
+import { Pill, Confetti } from "../ui";
 import { fillForm } from "@/lib/engine/formFiller.js";
 
 // Synthetic values used by the "pull from EMR" one-click gap fill.
@@ -10,7 +10,7 @@ const EMR_SUGGESTIONS = {
   safety_screen: "No pacemaker or metallic implants; eGFR 88; no claustrophobia",
   photo_attached: "yes",
   prior_endoscopy: "No prior gastroscopy or colonoscopy on record",
-  medications: "See reconciled medication list (synthetic)",
+  medications: "See reconciled medication list",
   visual_acuity: "OD 20/60, OS 20/80",
   symptom_duration: "Gradual decline over ~8 months",
 };
@@ -35,6 +35,20 @@ export default function FormScreen({ selected, parsed, patient, onBack, onApprov
   const missing = form.fields.filter(
     (f) => f.required && isEmpty(values[f.key])
   );
+  const hasRequired = form.fields.some((f) => f.required);
+  const complete = hasRequired && missing.length === 0;
+
+  // Celebrate once when the form first becomes fully complete.
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [celebrated, setCelebrated] = useState(false);
+  useEffect(() => {
+    if (complete && !celebrated) {
+      setCelebrated(true);
+      setShowConfetti(true);
+      const t = setTimeout(() => setShowConfetti(false), 2600);
+      return () => clearTimeout(t);
+    }
+  }, [complete, celebrated]);
 
   const setVal = (key, v, fromEmr = false) => {
     setValues((s) => ({ ...s, [key]: v }));
@@ -48,6 +62,7 @@ export default function FormScreen({ selected, parsed, patient, onBack, onApprov
 
   return (
     <div className="mx-auto max-w-3xl">
+      {showConfetti && <Confetti />}
       <div className="card p-6">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">{form.title}</h2>
@@ -109,6 +124,12 @@ export default function FormScreen({ selected, parsed, patient, onBack, onApprov
             );
           })}
         </div>
+
+        {complete && (
+          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+            🎉 Congratulations — every required field is complete. This referral is ready to send.
+          </div>
+        )}
 
         <div className="mt-6 flex items-center justify-between">
           <button className="btn-ghost" onClick={onBack}>← Back to ranking</button>

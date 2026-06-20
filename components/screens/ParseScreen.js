@@ -5,19 +5,13 @@ import { conditionLabel } from "@/lib/data/specialists.js";
 
 export default function ParseScreen({ parsed, onBack, onRank }) {
   if (!parsed) return null;
-  const confPct = Math.round((parsed.confidence || 0) * 100);
 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="card p-6">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">AI clinical parse</h2>
-          <Pill tone={confPct >= 80 ? "green" : "amber"}>Confidence {confPct}%</Pill>
         </div>
-        <p className="mb-5 text-sm text-slate-500">
-          The model reads the clinical intent — it does <span className="font-medium text-slate-700">not</span> diagnose.
-          Everything below is editable downstream.
-        </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Block label="Suspected specialty">

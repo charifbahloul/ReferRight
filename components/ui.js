@@ -1,6 +1,104 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 // Small shared presentational components used across screens.
+
+// Professional, restrained confetti burst. Muted brand palette, fades out.
+const CONFETTI_COLORS = ["#4f46e5", "#0d9488", "#0ea5e9", "#10b981", "#f59e0b", "#94a3b8"];
+
+export function Confetti({ count = 90, duration = 2600 }) {
+  const [pieces, setPieces] = useState([]);
+
+  useEffect(() => {
+    const arr = Array.from({ length: count }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 0.5,
+      fall: 1.4 + Math.random() * 1.2,
+      drift: (Math.random() - 0.5) * 60,
+      rot: Math.random() * 360,
+      w: 6 + Math.random() * 5,
+      h: 9 + Math.random() * 7,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      round: Math.random() > 0.7,
+    }));
+    setPieces(arr);
+    const t = setTimeout(() => setPieces([]), duration);
+    return () => clearTimeout(t);
+  }, [count, duration]);
+
+  if (pieces.length === 0) return null;
+
+  return (
+    <div className="confetti-layer" aria-hidden="true">
+      {pieces.map((p) => (
+        <span
+          key={p.id}
+          className="confetti-piece"
+          style={{
+            left: `${p.left}%`,
+            width: `${p.w}px`,
+            height: `${p.h}px`,
+            background: p.color,
+            borderRadius: p.round ? "50%" : "1px",
+            "--drift": `${p.drift}px`,
+            "--rot": `${p.rot}deg`,
+            animationDuration: `${p.fall}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Full-card "analyzing" loader used between staged AI steps.
+export function LoadingScreen({ title, steps = [] }) {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (steps.length <= 1) return;
+    const each = 1100;
+    const id = setInterval(
+      () => setActive((a) => (a < steps.length - 1 ? a + 1 : a)),
+      each
+    );
+    return () => clearInterval(id);
+  }, [steps.length]);
+
+  return (
+    <div className="mx-auto max-w-md">
+      <div className="card flex flex-col items-center gap-5 p-10 text-center">
+        <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-slate-200 border-t-compass-600" />
+        <div>
+          <div className="text-base font-bold text-slate-900">{title}</div>
+          {steps.length > 0 && (
+            <ul className="mt-4 space-y-1.5 text-left text-sm">
+              {steps.map((s, i) => (
+                <li
+                  key={s}
+                  className={`flex items-center gap-2 transition ${
+                    i < active
+                      ? "text-emerald-600"
+                      : i === active
+                      ? "text-slate-900"
+                      : "text-slate-300"
+                  }`}
+                >
+                  <span className="w-4 text-center">
+                    {i < active ? "✓" : i === active ? "•" : "○"}
+                  </span>
+                  {s}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function Logo({ className = "" }) {
   return (
@@ -13,7 +111,7 @@ export function Logo({ className = "" }) {
       </span>
       <div className="leading-tight">
         <div className="font-bold text-slate-900">Referral Compass</div>
-        <div className="text-[11px] text-slate-500">AI referral co-pilot · synthetic demo</div>
+        <div className="text-[11px] text-slate-500">AI referral co-pilot</div>
       </div>
     </div>
   );

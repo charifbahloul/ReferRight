@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ScoreBar, Pill } from "../ui";
+import { Pill } from "../ui";
 import { rankSpecialists } from "@/lib/engine/ranker.js";
 
 export default function RankingScreen({ parsed, patient, onBack, onSelect }) {
@@ -80,6 +80,27 @@ export default function RankingScreen({ parsed, patient, onBack, onSelect }) {
       </div>
     </div>
   );
+}
+
+function StatRow({ label, value }) {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <dt className="text-xs text-slate-400">{label}</dt>
+      <dd className="text-right font-medium text-slate-700">{value}</dd>
+    </div>
+  );
+}
+
+function scopeLabel(score) {
+  if (score >= 1) return "Full match";
+  if (score > 0) return "Partial match";
+  return "Specialty match";
+}
+
+function accessibilityLabel(score) {
+  if (score >= 1) return "All needs met";
+  if (score > 0) return "Some needs met";
+  return "Needs not met";
 }
 
 function LearningToggle({ on, onChange }) {
@@ -168,21 +189,24 @@ function SpecialistCard({ r, onSelect, delta, showDelta }) {
           </ul>
         </div>
 
-        {/* right scores */}
-        <div className="w-full shrink-0 sm:w-52">
-          <div className="mb-3 text-center">
-            <div className="text-3xl font-bold text-slate-900">
-              {Math.round(r.overall_score * 100)}
+        {/* right: concrete, usable numbers (no abstract percentages) */}
+        <div className="w-full shrink-0 sm:w-56">
+          <div className="mb-3 rounded-xl bg-slate-50 p-3 text-center">
+            <div className="text-3xl font-bold text-slate-900">~{r.wait_days}</div>
+            <div className="text-[11px] uppercase tracking-wide text-slate-400">
+              days to first appointment
             </div>
-            <div className="text-[11px] uppercase tracking-wide text-slate-400">overall fit</div>
           </div>
-          <div className="space-y-2">
-            <ScoreBar label="Scope match" value={r.scope_match_score} />
-            <ScoreBar label="Wait time" value={r.wait_score} tone="teal" />
-            <ScoreBar label="Accessibility" value={r.accessibility_score} />
-            <ScoreBar label="Language" value={r.language_score} />
-            <ScoreBar label="Triage fit" value={r.triage_fit_score} tone="teal" />
-          </div>
+          <dl className="space-y-1.5 text-sm">
+            <StatRow label="Distance" value={r.distance_km != null ? `${r.distance_km} km` : "—"} />
+            <StatRow label="Acceptance rate" value={`${Math.round(p.acceptance_rate * 100)}%`} />
+            <StatRow label="Languages" value={p.languages.join(", ")} />
+            <StatRow label="Scope" value={scopeLabel(r.scope_match_score)} />
+            <StatRow
+              label="Accessibility"
+              value={accessibilityLabel(r.accessibility_score)}
+            />
+          </dl>
           <button className="btn-primary mt-4 w-full" onClick={onSelect}>
             Use & fill form →
           </button>
