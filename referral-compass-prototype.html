@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Referral Compass — Full Flow Prototype</title>
+<style>
+  :root{
+    --bg:#f4f7f9; --panel:#ffffff; --ink:#0f2733; --muted:#5b7282;
+    --line:#e3ebf0; --brand:#0e8f8f; --brand-dark:#0a6e6e; --brand-soft:#e3f4f4;
+    --accent:#2563eb; --accent-soft:#e8f0fe;
+    --warn:#c2410c; --warn-soft:#fdeee5; --good:#15803d; --good-soft:#e7f5ec;
+    --danger:#b91c1c; --danger-soft:#fdecec; --shadow:0 1px 3px rgba(15,39,51,.08),0 6px 24px rgba(15,39,51,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  /* Top bar */
+  .topbar{position:sticky;top:0;z-index:50;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:12px 22px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.2px}
+  .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),#34c1b2);display:grid;place-items:center;color:#fff;font-weight:900}
+  .brand small{display:block;font-weight:500;color:var(--muted);font-size:11px;letter-spacing:0}
+  .persona{display:flex;gap:6px;background:var(--bg);padding:5px;border-radius:11px;border:1px solid var(--line)}
+  .persona button{border:0;background:transparent;padding:8px 14px;border-radius:8px;font-weight:600;color:var(--muted);cursor:pointer;font-size:13px}
+  .persona button.active{background:var(--panel);color:var(--brand-dark);box-shadow:var(--shadow)}
+  .pill{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
+  /* Layout */
+  .wrap{max-width:1180px;margin:0 auto;padding:22px}
+  .view{display:none}
+  .view.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  /* Stepper */
+  .steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .steps .s{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted);background:var(--panel);border:1px solid var(--line);padding:7px 12px;border-radius:999px;cursor:pointer}
+  .steps .s .n{width:20px;height:20px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font-size:11px;color:var(--muted)}
+  .steps .s.done{color:var(--good)}
+  .steps .s.done .n{background:var(--good-soft);color:var(--good)}
+  .steps .s.cur{color:#fff;background:var(--brand);border-color:var(--brand)}
+  .steps .s.cur .n{background:rgba(255,255,255,.25);color:#fff}
+  /* Cards */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+  .card h2{margin:0 0 4px;font-size:19px}
+  .card .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:780px){.grid2,.grid3{grid-template-columns:1fr}}
+  label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 5px}
+  input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
+  textarea{resize:vertical;min-height:84px}
+  .field{margin-bottom:14px}
+  .btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;background:var(--brand);color:#fff;font-weight:700;padding:12px 18px;border-radius:11px;font-size:14px}
+  .btn:hover{background:var(--brand-dark)}
+  .btn.ghost{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{background:#eef3f6}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{filter:brightness(.94)}
+  .btn.lg{padding:14px 22px;font-size:15px}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;background:var(--brand-soft);color:var(--brand-dark)}
+  .tag.warn{background:var(--warn-soft);color:var(--warn)}
+  .tag.good{background:var(--good-soft);color:var(--good)}
+  .tag.red{background:var(--danger-soft);color:var(--danger)}
+  .tag.blue{background:var(--accent-soft);color:var(--accent)}
+  .muted{color:var(--muted)}
+  .hr{height:1px;background:var(--line);margin:16px 0}
+  /* Queue table */
+  .row{display:flex;align-items:center;gap:14px;padding:14px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:#fff;cursor:pointer}
+  .row:hover{border-color:var(--brand);background:#fbfdfd}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--brand-soft);color:var(--brand-dark);display:grid;place-items:center;font-weight:800;flex:none}
+  .row .meta{flex:1}
+  .row .meta b{font-size:14px}
+  .row .meta span{display:block;color:var(--muted);font-size:12px}
+  .status{font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px}
+  .st-wait{background:var(--accent-soft);color:var(--accent)}
+  .st-live{background:var(--danger-soft);color:var(--danger)}
+  .st-rev{background:var(--warn-soft);color:var(--warn)}
+  .st-sent{background:var(--good-soft);color:var(--good)}
+  /* Specialist rank cards */
+  .rank{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start}
+  .rank.top{border-color:var(--brand);background:linear-gradient(180deg,var(--brand-soft),#fff)}
+  .rk{width:30px;height:30px;border-radius:8px;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+  .rank.top .rk{background:var(--brand)}
+  .rank .body{flex:1}
+  .rank .body h4{margin:0 0 2px;font-size:15px}
+  .reasons{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .score{text-align:right;flex:none}
+  .score .big{font-size:22px;font-weight:800;color:var(--brand-dark)}
+  .score .lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase}
+  .filtered{opacity:.6;border-style:dashed}
+  /* Form review */
+  .formfield{border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:10px;background:#fff}
+  .formfield.auto{border-left:3px solid var(--brand)}
+  .formfield.gap{border-left:3px solid var(--warn);background:var(--warn-soft)}
+  .formfield .fl{font-size:11px;font-weight:700;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:4px}
+  .formfield .fv{font-size:14px;font-weight:600}
+  /* Cascade timeline */
+  .tl{position:relative;margin-left:10px;padding-left:22px;border-left:2px solid var(--line)}
+  .tl .ev{position:relative;margin-bottom:16px}
+  .tl .ev::before{content:"";position:absolute;left:-29px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--muted)}
+  .tl .ev.ok::before{border-color:var(--good)}
+  .tl .ev.no::before{border-color:var(--danger)}
+  .tl .ev.now::before{border-color:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+  .tl .ev b{font-size:14px}
+  .tl .ev span{display:block;color:var(--muted);font-size:12px}
+  /* stat tiles */
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+  .tile .v{font-size:26px;font-weight:800}
+  .tile .l{font-size:12px;color:var(--muted);font-weight:600}
+  .tile .d{font-size:11px;font-weight:700;margin-top:4px}
+  .banner{display:flex;gap:12px;align-items:flex-start;background:var(--accent-soft);border:1px solid #cfe0fb;color:#1e3a8a;padding:12px 14px;border-radius:11px;font-size:13px;margin-bottom:14px}
+  .banner.warn{background:var(--warn-soft);border-color:#f3d3bf;color:#9a3412}
+  .banner b{display:block}
+  .toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600}
+  .switch{width:42px;height:24px;border-radius:999px;background:var(--line);position:relative;transition:.2s}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:.2s}
+  .switch.on{background:var(--brand)}
+  .switch.on::after{left:20px}
+  .recdot{width:10px;height:10px;border-radius:50%;background:var(--danger);display:inline-block;animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .transcript{background:var(--bg);border-radius:11px;padding:14px;font-size:13px;line-height:1.7;max-height:230px;overflow:auto}
+  .transcript .t{color:var(--brand-dark);font-weight:700}
+  .kbd{font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:var(--muted)}
+  .note{font-size:12px;color:var(--muted);margin-top:10px}
+  .center{text-align:center}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">R</div>
+    <div>Referral Compass <small>AI referral co-pilot · synthetic demo</small></div>
+  </div>
+  <div class="persona" id="persona">
+    <button data-p="patient">Patient</button>
+    <button data-p="clinician" class="active">Clinician</button>
+    <button data-p="admin">Admin / Ops</button>
+  </div>
+  <span class="pill">PROTOTYPE</span>
+</div>
+
+<!-- ============ PATIENT ============ -->
+<div class="wrap view" id="v-patient">
+  <div class="steps" id="psteps">
+    <div class="s cur" data-ps="0"><span class="n">1</span> Book</div>
+    <div class="s" data-ps="1"><span class="n">2</span> Intake form</div>
+    <div class="s" data-ps="2"><span class="n">3</span> Waitroom</div>
+  </div>
+
+  <!-- patient step 0 -->
+  <div class="pstep" data-ps="0">
+    <div class="card">
+      <h2>Book your visit</h2>
+      <div class="sub">Dermatology · Riverside Family Clinic</div>
+      <div class="grid2">
+        <div class="field"><label>Reason for visit</label>
+          <select><option>Skin lesion / changing mole</option><option>Vision concern</option><option>Imaging (MRI) follow-up</option></select></div>
+        <div class="field"><label>Preferred date</label><input type="date" value="2026-06-24"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Time</label><select><option>9:00 AM</option><option selected>10:30 AM</option><option>2:15 PM</option></select></div>
+        <div class="field"><label>First visit here?</label><select><option selected>Yes — new patient</option><option>No — returning</option></select></div>
+        <div class="field"><label>Language</label><select><option>English</option><option selected>French</option></select></div>
+      </div>
+      <div class="banner"><span>ℹ️</span><div><b>New patient</b>You'll get a one-time intake form. After this, you never re-enter it — the clinic reuses it for every visit and referral.</div></div>
+      <button class="btn lg" onclick="goP(1)">Confirm booking →</button>
+    </div>
+  </div>
+
+  <!-- patient step 1 -->
+  <div class="pstep" data-ps="1" style="display:none">
+    <div class="card">
+      <h2>One-time intake form</h2>
+      <div class="sub">Fill this at home or in the waiting room. No account needed — saved securely to your clinic record.</div>
+      <div class="grid2">
+        <div class="field"><label>Full name</label><input value="Marie Tremblay"></div>
+        <div class="field"><label>Date of birth</label><input type="date" value="1968-03-11"></div>
+        <div class="field"><label>Health card #</label><input value="•••• •••• 482"></div>
+        <div class="field"><label>Phone</label><input value="(613) 555-0192"></div>
+        <div class="field"><label>Home postal code</label><input value="K1N 5T2"></div>
+        <div class="field"><label>Preferred language</label><select><option selected>French</option><option>English</option></select></div>
+      </div>
+      <div class="field"><label>Accessibility needs</label>
+        <select><option selected>Wheelchair access required</option><option>None</option><option>Hearing support</option></select></div>
+      <div class="field"><label>How far can you travel for care?</label>
+        <select><option>Up to 10 km</option><option selected>Up to 25 km</option><option>Any distance</option></select></div>
+      <div class="field"><label>Reason for today's visit (in your words)</label>
+        <textarea>A mole on my back has changed shape and colour over the last 2 months.</textarea></div>
+      <button class="btn lg" onclick="goP(2)">Submit intake →</button>
+      <div class="note">Stored once → reused for every future visit & referral. The clinician never re-keys this.</div>
+    </div>
+  </div>
+
+  <!-- patient step 2 -->
+  <div class="pstep" data-ps="2" style="display:none">
+    <div class="card center">
+      <div style="font-size:46px">✅</div>
+      <h2>You're checked in</h2>
+      <div class="sub">Marie, your intake is saved. Dr. Okafor will see you shortly.</div>
+      <div class="grid3" style="margin:18px 0">
+        <div class="tile"><div class="l">Your spot</div><div class="v">#3</div><div class="d muted">~12 min wait</div></div>
+        <div class="tile"><div class="l">Room</div><div class="v">B2</div><div class="d muted">Dermatology</div></div>
+        <div class="tile"><div class="l">Visit</div><div class="v">10:30</div><div class="d good">On time</div></div>
+      </div>
+      <div class="banner"><span>🔒</span><div><b>What happens next</b>The doctor's visit is recorded by a medical scribe (with your consent). Afterward, if you need a specialist, the clinic finds the best-matched one for you automatically — accessible, French-speaking, within your travel limit.</div></div>
+      <p class="muted">Switch to the <b>Clinician</b> tab above to see what the doctor sees →</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CLINICIAN ============ -->
+<div class="wrap view active" id="v-clinician">
+
+  <!-- Dashboard -->
+  <div class="cstep" data-cs="dash">
+    <div class="card">
+      <h2>Today's sessions</h2>
+      <div class="sub">Tuesday, June 24 · Dr. Amara Okafor · Riverside Family Clinic</div>
+      <div class="row" onclick="openSession()">
+        <div class="avatar">MT</div>
+        <div class="meta"><b>Marie Tremblay · 58F</b><span>Changing mole · French · wheelchair · ≤25 km</span></div>
+        <span class="status st-rev">SCRIBE READY — REVIEW</span>
+      </div>
+      <div class="row">
+        <div class="avatar">JD</div>
+        <div class="meta"><b>James Doiron · 64M</b><span>Anemia + weight loss · GI query</span></div>
+        <span class="status st-live"><span class="recdot"></span> IN SESSION</span>
+      </div>
+      <div class="row">
+        <div class="avatar">SK</div>
+        <div class="meta"><b>Sara Khalil · 41F</b><span>Blurred vision · needs eye referral</span></div>
+        <span class="status st-wait">WAITROOM</span>
+      </div>
+      <div class="row">
+        <div class="avatar">RP</div>
+        <div class="meta"><b>Robert Park · 52M</b><span>Knee MRI request</span></div>
+        <span class="status st-sent">REFERRAL SENT</span>
+      </div>
+      <div class="note">Status flows: Waitroom → In session (scribe recording) → Scribe ready → Review & approve → Sent. The platform stamps each transition automatically.</div>
+    </div>
+  </div>
+
+  <!-- Session wizard -->
+  <div class="cstep" data-cs="session" style="display:none">
+    <div class="steps" id="csteps">
+      <div class="s cur" data-cg="0"><span class="n">1</span> Session & scribe</div>
+      <div class="s" data-cg="1"><span class="n">2</span> AI parse</div>
+      <div class="s" data-cg="2"><span class="n">3</span> Ranked matches</div>
+      <div class="s" data-cg="3"><span class="n">4</span> Form + gap check</div>
+      <div class="s" data-cg="4"><span class="n">5</span> Review & approve</div>
+      <div class="s" data-cg="5"><span class="n">6</span> Send cascade</div>
+    </div>
+
+    <!-- 0 scribe -->
+    <div class="cg" data-cg="0">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><h2>Marie Tremblay · 58F</h2><div class="sub">Session auto-started when booked into room B2 · 10:31 AM</div></div>
+          <span class="tag red"><span class="recdot"></span> Scribe recording</span>
+        </div>
+        <div class="transcript">
+          <p><span class="t">Dr. Okafor:</span> So you noticed the mole on your back changing — tell me about that.</p>
+          <p><span class="t">Patient:</span> Oui, over two months it got darker and the edges are uneven. Sometimes it itches.</p>
+          <p><span class="t">Dr. Okafor:</span> Any bleeding? Family history of skin cancer?</p>
+          <p><span class="t">Patient:</span> A little bleeding last week. My sister had melanoma.</p>
+          <p><span class="t">Dr. Okafor:</span> Okay. This needs a dermatologist who handles lesion work-ups. I'll get a referral going.</p>
+        </div>
+        <div class="banner" style="margin-top:14px"><span>⚡</span><div><b>Auto-trigger</b>When the scribe ends, its transcript is pushed straight into this patient's session. No copy-paste, no uploads.</div></div>
+        <button class="btn lg" onclick="goC(1)">End session → run AI parse</button>
+      </div>
+    </div>
+
+    <!-- 1 parse -->
+    <div class="cg" data-cg="1" style="display:none">
+      <div class="card">
+        <h2>AI clinical parse</h2>
+        <div class="sub">Reads referral <i>intent</i> from scribe + EMR. It does not diagnose.</div>
+        <div class="grid2">
+          <div>
+            <label>Suspected specialty</label><div class="formfield auto"><div class="fv">Dermatology — lesion / melanoma work-up</div></div>
+            <label>Conditions detected</label><div class="formfield auto"><div class="fv">Changing pigmented lesion, irregular borders, recent bleeding</div></div>
+            <label>Patient constraints (from intake)</label><div class="formfield auto"><div class="fv">French · wheelchair access · ≤25 km · K1N 5T2</div></div>
+          </div>
+          <div>
+            <label>🚩 Red flags</label>
+            <div class="formfield gap"><div class="fv">Family hx melanoma + bleeding + 2-month change → urgent triage</div></div>
+            <label>Estimated triage</label><div class="formfield auto"><div class="fv"><span class="tag red">URGENT — 2 weeks</span></div></div>
+            <label>Data the receiving clinic will expect</label>
+            <div class="formfield auto"><div class="fv">Lesion photo, ABCDE notes, duration, family hx</div></div>
+          </div>
+        </div>
+        <button class="btn lg" onclick="goC(2)">Find best-matched specialists →</button>
+      </div>
+    </div>
+
+    <!-- 2 ranking -->
+    <div class="cg" data-cg="2" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <div><h2>Ranked specialist matches</h2><div class="sub">Scope → accessibility & patient constraints → triage fit → <b>wait time</b> → tie-breakers. Top 5 from public Ocean directory.</div></div>
+          <label class="toggle" onclick="toggleLearn(this)"><span>Community-learned wait times</span><span class="switch" id="learnSw"></span></label>
+        </div>
+
+        <div class="rank top"><div class="rk">1</div>
+          <div class="body"><h4>Ottawa Skin & Lesion Centre</h4><span class="muted">Dr. Lévesque · 8.2 km · accepts melanoma work-ups</span>
+            <div class="reasons"><span class="tag good">✓ Takes lesion work-ups</span><span class="tag good">✓ French</span><span class="tag good">✓ Wheelchair</span><span class="tag blue">Wait <b id="w1">11 days</b></span></div></div>
+          <div class="score"><div class="big">96</div><div class="lbl">match</div></div></div>
+
+        <div class="rank"><div class="rk">2</div>
+          <div class="body"><h4>Gatineau Dermatology Associates</h4><span class="muted">14.1 km · melanoma work-ups</span>
+            <div class="reasons"><span class="tag good">✓ Scope</span><span class="tag good">✓ French</span><span class="tag warn">No step-free entrance</span><span class="tag blue">Wait <b id="w2">9 days</b></span></div></div>
+          <div class="score"><div class="big">88</div><div class="lbl">match</div></div></div>
+
+        <div class="rank"><div class="rk">3</div>
+          <div class="body"><h4>Riverside Derm Group</h4><span class="muted">5.0 km · closest option</span>
+            <div class="reasons"><span class="tag good">✓ Scope</span><span class="tag warn">English only</span><span class="tag good">✓ Wheelchair</span><span class="tag blue">Wait 16 days</span></div></div>
+          <div class="score"><div class="big">81</div><div class="lbl">match</div></div></div>
+
+        <div class="rank filtered"><div class="rk">—</div>
+          <div class="body"><h4>Downtown Cosmetic Dermatology</h4><span class="muted">3.2 km · closest of all</span>
+            <div class="reasons"><span class="tag red">✕ Excludes malignancy / lesion work-ups</span></div>
+            <div class="note">Filtered out — out of scope. The closest clinic is <b>not</b> the right one. This is the transparency that prevents an almost-failed referral.</div></div>
+          <div class="score"><div class="lbl">filtered</div></div></div>
+
+        <button class="btn lg" onclick="goC(3)">Build referral for #1 →</button>
+        <div class="note">Toggle the switch: community-learned wait times can re-rank the list — "before vs after learning."</div>
+      </div>
+    </div>
+
+    <!-- 3 form + gap -->
+    <div class="cg" data-cg="3" style="display:none">
+      <div class="card">
+        <h2>Auto-filled referral form</h2>
+        <div class="sub">Ocean-style form for Ottawa Skin & Lesion Centre. <span class="tag">█ AI-filled</span> &nbsp; <span class="tag warn">█ Needs you</span></div>
+        <div class="grid2">
+          <div>
+            <div class="formfield auto"><div class="fl">Patient name <span class="tag">auto</span></div><div class="fv">Marie Tremblay</div></div>
+            <div class="formfield auto"><div class="fl">DOB / Health # <span class="tag">auto</span></div><div class="fv">1968-03-11 · ••••482</div></div>
+            <div class="formfield auto"><div class="fl">Postal code <span class="tag">auto</span></div><div class="fv">K1N 5T2</div></div>
+            <div class="formfield auto"><div class="fl">Language / Accessibility <span class="tag">auto</span></div><div class="fv">French · Wheelchair</div></div>
+            <div class="formfield auto"><div class="fl">Reason for referral <span class="tag">auto</span></div><div class="fv">Urgent assessment of changing pigmented lesion, suspected melanoma. 2-month evolution, irregular borders, recent bleeding, FHx melanoma.</div></div>
+          </div>
+          <div>
+            <div class="formfield auto"><div class="fl">Requested items <span class="tag">auto</span></div><div class="fv">Dermoscopy + biopsy if indicated</div></div>
+            <div class="formfield auto"><div class="fl">Triage <span class="tag">auto</span></div><div class="fv">Urgent (≤2 weeks)</div></div>
+            <div class="banner warn"><span>👤</span><div><b>Human in the loop</b>2 required fields can't be filled from the system. Please complete before approving.</div></div>
+            <div class="formfield gap"><div class="fl">Lesion photo attachment <span class="tag warn">required</span></div>
+              <button class="btn ghost" style="padding:8px 12px">📎 Attach from exam camera</button></div>
+            <div class="formfield gap"><div class="fl">Most recent CBC date <span class="tag warn">required</span></div>
+              <div class="btnrow"><button class="btn ghost" style="padding:8px 12px" onclick="this.closest('.formfield').className='formfield auto';this.parentElement.previousElementSibling.innerHTML='Most recent CBC date <span class=\'tag good\'>filled</span>';this.parentElement.outerHTML='<div class=\'fv\'>2026-06-10 (pulled from EMR)</div>'">↻ Pull from EMR</button><input style="flex:1" placeholder="or type date"></div></div>
+          </div>
+        </div>
+        <button class="btn lg accent" onclick="goC(4)">Looks complete → review</button>
+      </div>
+    </div>
+
+    <!-- 4 review approve -->
+    <div class="cg" data-cg="4" style="display:none">
+      <div class="card">
+        <h2>Review &amp; approve</h2>
+        <div class="sub">Nothing sends until you sign off. You are the human in the loop.</div>
+        <div class="banner"><span>✅</span><div><b>Gap check passed</b>All required fields complete. AI summary, form, and ranked destinations are ready.</div></div>
+        <div class="grid2">
+          <div class="card" style="box-shadow:none;margin:0">
+            <h4 style="margin:0 0 8px">AI conversation summary</h4>
+            <p class="muted" style="font-size:13px;line-height:1.6">58F, French-speaking, presents with a 2-month history of a changing pigmented lesion on the back — darkening, irregular borders, recent bleeding, intermittent pruritus. Sister with melanoma. Exam consistent with suspicious nevus. Urgent dermatology referral for dermoscopy ± biopsy. Patient requires wheelchair access and French-language service; travel limit 25 km.</p>
+          </div>
+          <div class="card" style="box-shadow:none;margin:0">
+            <h4 style="margin:0 0 8px">Send order (cascade)</h4>
+            <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.9">
+              <li><b>Ottawa Skin &amp; Lesion Centre</b> — match 96</li>
+              <li>Gatineau Dermatology Associates — 88</li>
+              <li>Riverside Derm Group — 81</li>
+            </ol>
+            <div class="note">If #1 declines, it auto-sends to #2, then #3 — one at a time.</div>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button class="btn lg" onclick="goC(5)">✔ Approve &amp; send to #1</button>
+          <button class="btn ghost lg" onclick="goC(3)">Edit form</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 cascade -->
+    <div class="cg" data-cg="5" style="display:none">
+      <div class="card">
+        <h2>Sent — cascade in progress</h2>
+        <div class="sub">The platform delivers to ranked specialists one at a time and auto-advances on decline.</div>
+        <div class="tl">
+          <div class="ev ok"><b>Referral created &amp; approved</b><span>by Dr. Okafor · 10:38 AM</span></div>
+          <div class="ev no"><b>Sent to #1 Ottawa Skin &amp; Lesion Centre → Declined</b><span>at capacity · auto-advanced · 10:52 AM</span></div>
+          <div class="ev now"><b>Sent to #2 Gatineau Dermatology Associates → Awaiting</b><span>delivered 10:53 AM · response pending</span></div>
+          <div class="ev"><b>#3 Riverside Derm Group</b><span>queued if #2 declines</span></div>
+          <div class="ev"><b>If all 5 decline → new ticket opens for staff</b><span>nothing falls through the cracks</span></div>
+        </div>
+        <div class="btnrow">
+          <button class="btn ghost" onclick="goC(0)">← Back to session</button>
+          <button class="btn" onclick="showView('clinician');showStep('cstep','dash')">Done — back to dashboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ADMIN ============ -->
+<div class="wrap view" id="v-admin">
+  <div class="grid3" style="margin-bottom:18px">
+    <div class="tile"><div class="l">Active referrals</div><div class="v">37</div><div class="d good">▲ 8 today</div></div>
+    <div class="tile"><div class="l">Avg. clinician time per referral</div><div class="v">90s</div><div class="d good">▼ from 14 min</div></div>
+    <div class="tile"><div class="l">Auto-matched first-try accept</div><div class="v">71%</div><div class="d muted">cascade handles the rest</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Referral tickets</h2>
+    <div class="sub">All patients across Dermatology, Ophthalmology, MRI · live cascade status</div>
+    <div class="row"><div class="avatar">MT</div><div class="meta"><b>Marie Tremblay</b><span>Dermatology · urgent · cascade at #2 of 3</span></div><span class="status st-rev">AWAITING #2</span></div>
+    <div class="row"><div class="avatar">SK</div><div class="meta"><b>Sara Khalil</b><span>Ophthalmology · French + transit-accessible eye clinic</span></div><span class="status st-sent">ACCEPTED #1</span></div>
+    <div class="row"><div class="avatar">RP</div><div class="meta"><b>Robert Park</b><span>MRI knee · centre flagged missing safety screen</span></div><span class="status st-rev">GAP: SAFETY SCREEN</span></div>
+    <div class="row"><div class="avatar">JD</div><div class="meta"><b>James Doiron</b><span>GI · anemia+weight loss → malignancy work-up scope</span></div><span class="status st-live">IN REVIEW</span></div>
+    <div class="row"><div class="avatar">LC</div><div class="meta"><b>Lina Costa</b><span>Dermatology · all 5 declined → escalated ticket</span></div><span class="status st-wait">NEEDS STAFF</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Cascade health</h2>
+      <div class="sub">Where referrals are landing</div>
+      <div class="tl">
+        <div class="ev ok"><b>Accepted on #1</b><span>71% · 26 referrals</span></div>
+        <div class="ev ok"><b>Accepted on #2–#3</b><span>21% · 8 referrals</span></div>
+        <div class="ev now"><b>Still in cascade</b><span>5% · 2 referrals</span></div>
+        <div class="ev no"><b>Escalated to staff (all declined)</b><span>3% · 1 referral</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Learning loop</h2>
+      <div class="sub">Opt-in, non-identifiable outcome feedback re-ranks future matches</div>
+      <div class="banner"><span>📈</span><div><b>Wait-time corrections this week: 14</b>Community-learned data lowered Ottawa Skin &amp; Lesion's effective wait from 18→11 days, moving it to #1 for lesion cases.</div></div>
+      <label class="toggle" onclick="toggleLearn(this)"><span>Apply learned data to ranking</span><span class="switch on"></span></label>
+      <div class="note">Toggle to compare "before vs after learning" rankings on the clinician screen.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // persona switch
+  document.getElementById('persona').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b)return;
+    document.querySelectorAll('#persona button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); showView(b.dataset.p);
+  });
+  function showView(p){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('v-'+p).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  // patient steps
+  function goP(n){
+    document.querySelectorAll('#v-patient .pstep').forEach(s=>s.style.display = s.dataset.ps==n?'block':'none');
+    document.querySelectorAll('#psteps .s').forEach(s=>{const i=+s.dataset.ps;s.classList.toggle('cur',i==n);s.classList.toggle('done',i<n)});
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  document.querySelectorAll('#psteps .s').forEach(s=>s.onclick=()=>goP(+s.dataset.ps));
+  // clinician
+  function openSession(){showStep('cstep','session');goC(0)}
+  function showStep(cls,val){document.querySelectorAll('.'+cls).forEach(s=>s.style.display = s.dataset.cs==val?'block':'none')}
+  function goC(n){
+    document.querySelectorAll('#v-clinician .cg').forEach(s=>s.style.display = s.dataset.cg==n?'block':'none');
+    document.querySelectorAll('#csteps .s').forEach(s=>{const i=+s.dataset.cg;s.classList.toggle('cur',i==n);s.classList.toggle('done',i<n)});
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  document.querySelectorAll('#csteps .s').forEach(s=>s.onclick=()=>goC(+s.dataset.cg));
+  // learning toggle (demo re-rank)
+  function toggleLearn(el){
+    const sw=el.querySelector('.switch'); sw.classList.toggle('on');
+    const on=sw.classList.contains('on');
+    const w1=document.getElementById('w1'), w2=document.getElementById('w2');
+    if(w1) w1.textContent = on?'11 days':'18 days';
+    if(w2) w2.textContent = on?'9 days':'9 days';
+  }
+</script>
+</body>
+</html>
