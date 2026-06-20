@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Pill } from "../ui";
 import { rankSpecialists } from "@/lib/engine/ranker.js";
 
 export default function RankingScreen({ parsed, patient, onBack, onSelect }) {
-  const [useLearning, setUseLearning] = useState(false);
-
+  // Community-learned wait times are always applied automatically.
   const directoryRanking = useMemo(
     () => rankSpecialists(parsed, patient, { useLearning: false }),
     [parsed, patient]
@@ -15,7 +14,7 @@ export default function RankingScreen({ parsed, patient, onBack, onSelect }) {
     () => rankSpecialists(parsed, patient, { useLearning: true }),
     [parsed, patient]
   );
-  const ranking = useLearning ? learnedRanking : directoryRanking;
+  const ranking = learnedRanking;
 
   const recommended = ranking.filter((r) => !r.excluded);
   const excluded = ranking.filter((r) => r.excluded);
@@ -36,7 +35,7 @@ export default function RankingScreen({ parsed, patient, onBack, onSelect }) {
             Staged decision: scope → accessibility → triage → <span className="font-medium text-slate-700">wait time</span> → tie-breakers.
           </p>
         </div>
-        <LearningToggle on={useLearning} onChange={setUseLearning} />
+        <Pill tone="teal">Community-learned wait times applied</Pill>
       </div>
 
       <div className="space-y-3">
@@ -45,8 +44,8 @@ export default function RankingScreen({ parsed, patient, onBack, onSelect }) {
             key={r.provider.provider_id}
             r={r}
             onSelect={() => onSelect(r)}
-            delta={useLearning ? dirRankById[r.provider.provider_id] - r.rank : 0}
-            showDelta={useLearning}
+            delta={dirRankById[r.provider.provider_id] - r.rank}
+            showDelta
           />
         ))}
       </div>
@@ -101,33 +100,6 @@ function accessibilityLabel(score) {
   if (score >= 1) return "All needs met";
   if (score > 0) return "Some needs met";
   return "Needs not met";
-}
-
-function LearningToggle({ on, onChange }) {
-  return (
-    <button
-      onClick={() => onChange(!on)}
-      className={`rounded-xl border px-3 py-2 text-left text-xs transition ${
-        on ? "border-teal-300 bg-teal-50" : "border-slate-200 bg-white"
-      }`}
-    >
-      <div className="flex items-center gap-2 font-semibold text-slate-700">
-        <span
-          className={`relative h-4 w-7 rounded-full transition ${on ? "bg-teal-500" : "bg-slate-300"}`}
-        >
-          <span
-            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all ${
-              on ? "left-3.5" : "left-0.5"
-            }`}
-          />
-        </span>
-        Community-learned wait times
-      </div>
-      <div className="mt-0.5 text-[11px] text-slate-500">
-        {on ? "Using opt-in real-world outcomes" : "Using directory data only"}
-      </div>
-    </button>
-  );
 }
 
 function SpecialistCard({ r, onSelect, delta, showDelta }) {

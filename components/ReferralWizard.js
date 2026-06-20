@@ -67,7 +67,7 @@ export default function ReferralWizard() {
   // Parse -> Rank : 5s of "analyzing".
   const goRank = () =>
     setLoading({
-      title: "Analyzing the specialist directory…",
+      title: "Analyzing the specialist directory using AI…",
       steps: [
         "Matching clinical scope to provider rules",
         "Checking accessibility & language fit",
@@ -77,6 +77,21 @@ export default function ReferralWizard() {
       ms: 5000,
       next: 3,
     });
+
+  // Rank -> Form : "Filling out form using AI".
+  const goForm = (r) => {
+    setSelected(r);
+    setLoading({
+      title: "Filling out form using AI",
+      steps: [
+        "Reading the clinical parse & EMR extract",
+        "Mapping data to the referral form fields",
+        "Auto-filling and checking for gaps",
+      ],
+      ms: 4000,
+      next: 4,
+    });
+  };
 
   // Form -> Send : 7s of "analyzing".
   const goSend = (values) => {
@@ -131,10 +146,7 @@ export default function ReferralWizard() {
               parsed={parsed}
               patient={patient}
               onBack={() => setStep(2)}
-              onSelect={(r) => {
-                setSelected(r);
-                setStep(4);
-              }}
+              onSelect={goForm}
             />
           )}
           {step === 4 && selected && (

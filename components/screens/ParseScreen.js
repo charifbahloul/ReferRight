@@ -14,7 +14,7 @@ export default function ParseScreen({ parsed, onBack, onRank }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Block label="Suspected specialty">
+          <Block label="Specialty">
             <span className="text-base font-semibold text-slate-900">
               {parsed.specialty_intent || "Unclear — please specify"}
             </span>

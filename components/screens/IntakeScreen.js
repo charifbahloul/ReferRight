@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import MicButton from "../MicButton";
-import { Field, Pill } from "../ui";
+import { Field } from "../ui";
 import { DEMO_CASES } from "@/lib/data/demoCases.js";
 import { PLACES } from "@/lib/data/geo.js";
 
@@ -59,7 +59,6 @@ export default function IntakeScreen({ intake, setIntake, onParse }) {
       <div className="card p-6">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">New referral</h2>
-          <Pill tone="teal">No sign-in · session-only</Pill>
         </div>
 
         <Field

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Pill, Confetti } from "../ui";
+import { useMemo, useState } from "react";
+import { Pill } from "../ui";
 import { fillForm } from "@/lib/engine/formFiller.js";
 
 // Synthetic values used by the "pull from EMR" one-click gap fill.
@@ -26,8 +26,22 @@ export default function FormScreen({ selected, parsed, patient, onBack, onApprov
     [selected, parsed, patient]
   );
 
-  const [values, setValues] = useState(() => ({ ...result.filled }));
-  const [autoKeys, setAutoKeys] = useState(() => new Set(result.autoFilledKeys));
+  // Auto-fill any remaining EMR-backed field straight from the EMR, so the
+  // clinician never has to click "pull from EMR" — it just arrives complete.
+  const initial = useMemo(() => {
+    const vals = { ...result.filled };
+    const auto = new Set(result.autoFilledKeys);
+    for (const f of result.form.fields) {
+      if (isEmpty(vals[f.key]) && EMR_SUGGESTIONS[f.key] !== undefined) {
+        vals[f.key] = EMR_SUGGESTIONS[f.key];
+        auto.add(f.key);
+      }
+    }
+    return { vals, auto };
+  }, [result]);
+
+  const [values, setValues] = useState(() => initial.vals);
+  const [autoKeys, setAutoKeys] = useState(() => initial.auto);
 
   if (!result) return null;
   const { form, gapNarrative } = result;
@@ -35,34 +49,13 @@ export default function FormScreen({ selected, parsed, patient, onBack, onApprov
   const missing = form.fields.filter(
     (f) => f.required && isEmpty(values[f.key])
   );
-  const hasRequired = form.fields.some((f) => f.required);
-  const complete = hasRequired && missing.length === 0;
 
-  // Celebrate once when the form first becomes fully complete.
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [celebrated, setCelebrated] = useState(false);
-  useEffect(() => {
-    if (complete && !celebrated) {
-      setCelebrated(true);
-      setShowConfetti(true);
-      const t = setTimeout(() => setShowConfetti(false), 2600);
-      return () => clearTimeout(t);
-    }
-  }, [complete, celebrated]);
-
-  const setVal = (key, v, fromEmr = false) => {
+  const setVal = (key, v) => {
     setValues((s) => ({ ...s, [key]: v }));
-    if (fromEmr) setAutoKeys((s) => new Set(s).add(key));
-  };
-
-  const pullFromEmr = (key) => {
-    const v = EMR_SUGGESTIONS[key];
-    if (v !== undefined) setVal(key, v, true);
   };
 
   return (
     <div className="mx-auto max-w-3xl">
-      {showConfetti && <Confetti />}
       <div className="card p-6">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">{form.title}</h2>
@@ -85,7 +78,6 @@ export default function FormScreen({ selected, parsed, patient, onBack, onApprov
             const empty = isEmpty(values[f.key]);
             const auto = autoKeys.has(f.key) && !empty;
             const isGap = f.required && empty;
-            const canPull = EMR_SUGGESTIONS[f.key] !== undefined;
             return (
               <div
                 key={f.key}
@@ -111,25 +103,10 @@ export default function FormScreen({ selected, parsed, patient, onBack, onApprov
                   value={values[f.key]}
                   onChange={(v) => setVal(f.key, v)}
                 />
-
-                {isGap && canPull && (
-                  <button
-                    onClick={() => pullFromEmr(f.key)}
-                    className="mt-2 text-xs font-semibold text-compass-600 hover:text-compass-700"
-                  >
-                    + Add {f.label.toLowerCase()} from EMR
-                  </button>
-                )}
               </div>
             );
           })}
         </div>
-
-        {complete && (
-          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
-            🎉 Congratulations — every required field is complete. This referral is ready to send.
-          </div>
-        )}
 
         <div className="mt-6 flex items-center justify-between">
           <button className="btn-ghost" onClick={onBack}>← Back to ranking</button>

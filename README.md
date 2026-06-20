@@ -53,4 +53,4 @@ npm run dev      # http://localhost:3000
   touching the UI.
 - **`components/screens/`** — the five-screen referral wizard.
 
-The deterministic engine means the demo runs offline with no API keys.
+The deterministic engine means the demo runs offline with no API keys.  
