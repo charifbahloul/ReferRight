@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Confetti } from "../ui";
 import { buildReferralPdf, downloadBlob } from "@/lib/engine/pdf.js";
 import { conditionLabel } from "@/lib/data/specialists.js";
+import { submitReferral } from "@/lib/api";
 
 // Anonymous, unguessable token for the outcome-feedback link. No PII — the
 // receiving clinic can use it later to report back on the referral.
@@ -20,6 +21,17 @@ export default function FeedbackScreen({ cascade, selected, parsed, patient, for
   useEffect(() => {
     const t = setTimeout(() => setShowConfetti(false), 2800);
     return () => clearTimeout(t);
+  }, []);
+
+  // Persist referral to backend once on mount — fire-and-forget, never blocks UI.
+  const persistedRef = useRef(false);
+  const referralIdRef = useRef(null);
+  useEffect(() => {
+    if (persistedRef.current || !provider?.provider_id) return;
+    persistedRef.current = true;
+    submitReferral(provider, formValues, parsed).then((res) => {
+      if (res?.referral_id) referralIdRef.current = res.referral_id;
+    });
   }, []);
 
   const token = useMemo(() => makeToken(), []);

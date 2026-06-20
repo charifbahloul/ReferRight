@@ -5,3 +5,10 @@
 .env*.local
 .vercel
 *.tsbuildinfo
+
+# Backend
+backend/*.db
+backend/*.sqlite
+backend/__pycache__/
+backend/*.pyc
+backend/.venv/

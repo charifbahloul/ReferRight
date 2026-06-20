@@ -1,11 +1,14 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Logo, Confetti } from "@/components/ui";
+import { logOutcome } from "@/lib/api";
 
 const OUTCOMES = ["accepted", "rejected", "redirected", "wrong_scope", "too_long_wait"];
 
 export default function FeedbackPage() {
+  const { token } = useParams();
   const [outcome, setOutcome] = useState(null);
   const [reason, setReason] = useState("");
   const [optIn, setOptIn] = useState(true);
@@ -82,7 +85,10 @@ export default function FeedbackPage() {
         <button
           className="btn-primary mt-6 w-full"
           disabled={!outcome}
-          onClick={() => setSubmitted(true)}
+          onClick={() => {
+            logOutcome({ provider_id: token, provider_name: "unknown", specialty: "unknown" }, outcome, optIn, reason, token);
+            setSubmitted(true);
+          }}
         >
           Submit feedback
         </button>
